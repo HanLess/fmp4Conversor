@@ -1407,17 +1407,21 @@
 
   function getVideoTrackInfo(videoSamples, mdatBuffer) {
     return {
-      samples: videoSamples.map(sample => ({ ...sample,
-        buffer: mdatBuffer.slice(sample.start, sample.end)
-      })),
+      samples: videoSamples.map(sample => {
+        return { ...sample,
+          buffer: mdatBuffer.slice(sample.start, sample.end)
+        };
+      }),
       trackId: 1
     };
   }
   function getAudioTrackInfo(audioSamples, mdatBuffer) {
     return {
-      samples: audioSamples.map(sample => ({ ...sample,
-        buffer: mdatBuffer.slice(sample.start, sample.end)
-      })),
+      samples: audioSamples.map(sample => {
+        return { ...sample,
+          buffer: mdatBuffer.slice(sample.start, sample.end)
+        };
+      }),
       trackId: 2
     };
   }
@@ -1476,6 +1480,7 @@
           videoSamples,
           audioSamples
         } = this.getSamples();
+        console.log(videoSamples.length);
         const videoTrackInfo = getVideoTrackInfo(videoSamples, mdatBuffer);
         const audioTrackInfo = getAudioTrackInfo(audioSamples, mdatBuffer);
         return {
@@ -2028,12 +2033,34 @@
 
   _defineProperty(FMP4Generator, "sequenceNumber", 1);
 
-  var detach = async function (buffer) {
+  var detach = function (buffer) {
     var mp4BoxTreeObject = new MP4Parse(new Uint8Array(buffer)).mp4BoxTreeObject;
     var mp4Probe = new MP4Probe(mp4BoxTreeObject);
     var mp4BoxTreeObject = mp4BoxTreeObject;
     const RawData = concatTypedArray(FMP4Generator.ftyp(), FMP4Generator.moov(mp4Probe.mp4Data));
-    console.log(RawData);
+    const [start, end] = mp4Probe.getFragmentPosition(0);
+    var mdatBuffer = buffer.slice(start);
+    const {
+      videoTrackInfo,
+      audioTrackInfo
+    } = mp4Probe.getTrackInfo(mdatBuffer);
+    const {
+      videoInterval,
+      audioInterval
+    } = mp4Probe;
+    const videoBaseMediaDecodeTime = videoInterval.timeInterVal[0];
+    const audioBaseMediaDecodeTime = audioInterval.timeInterVal[0];
+    const videoRawData = concatTypedArray(FMP4Generator.moof(videoTrackInfo, videoBaseMediaDecodeTime), FMP4Generator.mdat(videoTrackInfo));
+    console.log('videoRawData ---- ', videoRawData.length);
+    var audioRawData = []; // maybe the last GOP dont have audio track
+    // 最后一个 GOP 序列可能没有音频轨
+
+    if (audioTrackInfo.samples.length !== 0) {
+      audioRawData = concatTypedArray(FMP4Generator.moof(audioTrackInfo, audioBaseMediaDecodeTime), FMP4Generator.mdat(audioTrackInfo));
+    }
+
+    console.log('audioRawData ---- ', audioRawData.length);
+    return concatTypedArray(RawData, videoRawData, audioRawData);
   };
 
   return detach;
