@@ -1480,7 +1480,6 @@
           videoSamples,
           audioSamples
         } = this.getSamples();
-        console.log(videoSamples.length);
         const videoTrackInfo = getVideoTrackInfo(videoSamples, mdatBuffer);
         const audioTrackInfo = getAudioTrackInfo(audioSamples, mdatBuffer);
         return {
@@ -2038,7 +2037,7 @@
     var mp4Probe = new MP4Probe(mp4BoxTreeObject);
     var mp4BoxTreeObject = mp4BoxTreeObject;
     const RawData = concatTypedArray(FMP4Generator.ftyp(), FMP4Generator.moov(mp4Probe.mp4Data));
-    const [start, end] = mp4Probe.getFragmentPosition(0);
+    const [start, end] = mp4Probe.getFragmentPosition();
     var mdatBuffer = buffer.slice(start);
     const {
       videoTrackInfo,
